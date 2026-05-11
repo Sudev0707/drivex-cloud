@@ -161,7 +161,8 @@ const googleCallback = (req, res) => {
     
     // Redirect to frontend with token
     const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    // res.redirect(`${frontendUrl}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    res.redirect(`${frontendUrl}/login?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
   } catch (error) {
     console.error('Google callback error:', error);
     res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);

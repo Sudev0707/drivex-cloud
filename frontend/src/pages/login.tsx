@@ -88,10 +88,9 @@ export default function LoginPage() {
   // };
 
   const handleGoogleLoginRedirect = () => {
-    window.location.href = "http://localhost:5000/api/auth/google";
-    // const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-    // const baseUrl = apiUrl.replace("/api", "");
-    // window.location.href = `${baseUrl}/api/auth/google`;
+    // window.location.href = "http://localhost:5000/api/auth/google";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    window.location.href = `${backendUrl}/api/auth/google`;
   };
 
   const requestOTPCode = async () => {
