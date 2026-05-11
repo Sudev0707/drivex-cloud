@@ -209,7 +209,7 @@ export default function LoginPage() {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to continue to your DriveX Lite workspace."
+      subtitle="Sign in to continue to your DriveX workspace."
       footer={
         <p>
           Don't have an account?{" "}

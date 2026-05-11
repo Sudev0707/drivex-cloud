@@ -35,7 +35,7 @@ function Header() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <span className="h-8 w-8 rounded-lg bg-primary text-primary-foreground inline-flex items-center justify-center font-bold">D</span>
-          <span className="font-semibold text-foreground tracking-tight">DriveX <span className="text-muted-foreground font-normal">Lite</span></span>
+          <span className="font-semibold text-foreground tracking-tight">DriveX <span className="text-muted-foreground font-normal"></span></span>
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-sm text-muted-foreground">
           <a href="#features" className="hover:text-foreground transition-colors">Features</a>
@@ -70,7 +70,7 @@ function Hero() {
           your files <span className="text-primary">deserve.</span>
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-base sm:text-lg text-muted-foreground">
-          DriveX Lite gives you a beautifully simple home for documents, photos, and videos —
+          DriveX gives you a beautifully simple home for documents, photos, and videos —
           with instant search, sharing, and zero clutter.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -210,7 +210,7 @@ function Pricing() {
 
 function Testimonials() {
   const items = [
-    { name: "Priya Patel", role: "Product Designer", quote: "DriveX Lite finally made my files feel calm. Beautiful, fast, and out of the way." },
+    { name: "Priya Patel", role: "Product Designer", quote: "DriveX finally made my files feel calm. Beautiful, fast, and out of the way." },
     { name: "Diego Ramos", role: "Founder, Northsea", quote: "We replaced two tools with this. Sharing with clients takes seconds now." },
     { name: "Mei Tanaka", role: "Photographer", quote: "Uploads are buttery smooth and the previews actually look good. Highly recommend." },
   ];
@@ -250,7 +250,7 @@ function CTA() {
         <div className="surface-card p-10 sm:p-14 text-center bg-gradient-to-br from-card via-primary-soft to-card">
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">Ready to clean up your cloud?</h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Join thousands of teams and creators using DriveX Lite to organize their work.
+            Join thousands of teams and creators using DriveX to organize their work.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <Link to="/register">
@@ -272,7 +272,7 @@ function Footer() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="h-7 w-7 rounded-md bg-primary text-primary-foreground inline-flex items-center justify-center font-bold text-sm">D</span>
-          <span className="text-sm text-muted-foreground">© {new Date().getFullYear()} DriveX Lite</span>
+          <span className="text-sm text-muted-foreground">© {new Date().getFullYear()} DriveX</span>
         </div>
         <div className="flex items-center gap-5 text-sm text-muted-foreground">
           <a href="#features" className="hover:text-foreground">Features</a>

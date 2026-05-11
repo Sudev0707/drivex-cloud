@@ -14,7 +14,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
       <div className="flex flex-col px-6 py-10 sm:px-10 lg:px-16">
         <Link to="/" className="flex items-center gap-2">
           <span className="h-9 w-9 rounded-lg bg-primary text-primary-foreground inline-flex items-center justify-center font-bold">D</span>
-          <span className="font-semibold text-foreground tracking-tight">DriveX <span className="text-muted-foreground font-normal">Lite</span></span>
+          <span className="font-semibold text-foreground tracking-tight">DriveX <span className="text-muted-foreground font-normal"></span></span>
         </Link>
         <div className="flex-1 flex items-center">
           <div className="w-full max-w-sm mx-auto">

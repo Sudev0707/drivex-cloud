@@ -54,7 +54,7 @@ export function Sidebar() {
         <div className="h-16 px-5 flex items-center justify-between border-b border-sidebar-border">
           <Link to="/dashboard" className="flex items-center gap-2">
             <span className="h-8 w-8 rounded-lg bg-primary text-primary-foreground inline-flex items-center justify-center font-bold">D</span>
-            <span className="font-semibold text-foreground tracking-tight">DriveX <span className="text-muted-foreground font-normal">Lite</span></span>
+            <span className="font-semibold text-foreground tracking-tight">DriveX <span className="text-muted-foreground font-normal"></span></span>
           </Link>
           <button
             className="md:hidden rounded-md p-1 hover:bg-muted"
