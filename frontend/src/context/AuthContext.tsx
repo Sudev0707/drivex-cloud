@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import axios from "axios";
 
 // API configuration
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const BASE_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5000";
+const API_URL = `${BASE_URL}/api`;
+// const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Configure axios defaults
 axios.defaults.withCredentials = true;
@@ -23,9 +25,14 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
   requestOTP: (email: string) => Promise<{ ok: boolean; error?: string }>;
   verifyOTP: (email: string, otp: string) => Promise<{ ok: boolean; error?: string }>;
+  googleLogin: () => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (patch: Partial<AuthUser>) => Promise<{ ok: boolean; error?: string }>;
 }
@@ -55,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadUser = async () => {
       const token = localStorage.getItem(TOKEN_KEY);
       const savedUser = localStorage.getItem(USER_KEY);
-      
+
       if (!token) {
         setLoading(false);
         return;
@@ -65,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         const response = await axios.get(`${API_URL}/auth/profile`);
-        
+
         const userData = {
           ...response.data,
           id: response.data._id,
@@ -111,12 +118,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const { token, ...userData } = response.data;
-      
+
       const authUser: AuthUser = {
         ...userData,
         id: userData._id,
         token: token,
-        avatar: userData.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name)}&backgroundColor=3b82f6&textColor=ffffff`,
+        avatar:
+          userData.avatar ||
+          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name)}&backgroundColor=3b82f6&textColor=ffffff`,
         plan: userData.plan || "Free",
         storageLimitMb: userData.storageLimitMb || 2048,
       };
@@ -140,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const { token, ...userData } = response.data;
-      
+
       const authUser: AuthUser = {
         ...userData,
         id: userData._id,
@@ -175,9 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifyOTP: AuthContextValue["verifyOTP"] = async (email, otp) => {
     try {
       const response = await axios.post(`${API_URL}/otp/verify`, { email, otp });
-      
+
       const { token, ...userData } = response.data;
-      
+
       const authUser: AuthUser = {
         ...userData,
         id: userData._id,
@@ -204,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (patch: Partial<AuthUser>) => {
     try {
       const response = await axios.put(`${API_URL}/auth/profile`, patch);
-      
+
       setUser((prev) => {
         if (!prev) return null;
         return {
@@ -213,13 +222,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...patch,
         };
       });
-      
+
       return { ok: true };
     } catch (error: any) {
       return {
         ok: false,
         error: error.response?.data?.message || "Failed to update profile.",
       };
+    }
+  };
+
+ const googleLogin = async () => {
+  try {
+    // Use BASE_URL here (not API_URL) to avoid double /api
+    window.location.href = `${BASE_URL}/api/auth/google`;
+    return { ok: true };
+  } catch (error: any) {
+    console.error("Google login error:", error);
+    return { ok: false, error: error.message };
+  }
+};
+
+  // Or if you want to handle it without redirect (popup method):
+  const googleLoginPopup = async () => {
+    try {
+      // Open Google OAuth in popup
+      const width = 500;
+      const height = 600;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+
+      const popup = window.open(
+        `${API_URL}/auth/google`,
+        "Google Login",
+        `width=${width},height=${height},left=${left},top=${top}`,
+      );
+
+      // Listen for callback
+      return new Promise((resolve) => {
+        window.addEventListener("message", (event) => {
+          if (event.data.type === "GOOGLE_AUTH_SUCCESS") {
+            popup?.close();
+            const { token, user } = event.data;
+            localStorage.setItem(TOKEN_KEY, token);
+            localStorage.setItem(USER_KEY, JSON.stringify(user));
+            setUser(user);
+            resolve({ ok: true });
+          }
+        });
+      });
+    } catch (error: any) {
+      return { ok: false, error: error.message };
     }
   };
 
@@ -233,6 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         requestOTP,
         verifyOTP,
+        googleLogin,
         logout,
         updateProfile,
       }}

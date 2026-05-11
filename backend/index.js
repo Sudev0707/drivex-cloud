@@ -4,6 +4,8 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/connection");
 const {testEmailService} = require("./services/emailService");
+const session = require('express-session');
+const passport = require("./middleware/passport");
 const authRoutes = require("./routes/authRoutes");
 const otpRoutes = require("./routes/otpRoutes");
 
@@ -31,6 +33,19 @@ app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
     next();
 })
+
+app.use(session({
+    secret: process.env.JWT_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie:{
+        secure: process.env.NODE_ENV === 'production', // set to true in production
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    }
+}))
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Routes
 app.use("/api/auth", authRoutes);

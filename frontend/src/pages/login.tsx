@@ -1,5 +1,5 @@
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Mail, Lock, KeySquare, AlertCircle } from "lucide-react";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { Input } from "@/components/common/Input";
@@ -8,7 +8,14 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const { login, requestOTP, verifyOTP, isAuthenticated, loading: authLoading } = useAuth();
+  const {
+    login,
+    requestOTP,
+    verifyOTP,
+    isAuthenticated,
+    loading: authLoading,
+    googleLogin,
+  } = useAuth();
 
   const navigate = useNavigate();
   const [email, setEmail] = useState("alex@drivex.app");
@@ -20,9 +27,72 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [otpError, setOtpError] = useState<string | null>(null);
 
+  // google OAuth
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const token = queryParams.get("token");
+    const userData = queryParams.get("user");
+
+    if (token && userData) {
+      try {
+        const user = JSON.parse(decodeURIComponent(userData));
+        // Store token and user data
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+
+        toast.success("Successfully signed in with Google!");
+        navigate("/dashboard");
+      } catch (error) {
+        console.error("Failed to parse Google user data:", error);
+        toast.error("Google sign-in failed. Please try again.");
+      }
+    }
+  }, [location, navigate]);
+
   if (isAuthenticated) {
     return <Navigate to="/dashboard" />;
   }
+
+  //
+  const handleGoogleLogin = () => {
+    // Open Google OAuth popup or redirect
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    const popup = window.open(
+      "http://localhost:5000/api/auth/google",
+      "Google Login",
+      `width=${width},height=${height},left=${left},top=${top}`,
+    );
+
+    // Listen for OAuth callback
+    window.addEventListener("message", (event) => {
+      if (event.data.type === "GOOGLE_AUTH_SUCCESS") {
+        popup?.close();
+        const { token, user } = event.data;
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        toast.success("Successfully signed in with Google!");
+        navigate("/dashboard");
+      }
+    });
+  };
+
+  //  const handleGoogleLogin = async () => {
+  //   const result = await googleLogin();
+  //   if (!result.ok) {
+  //     toast.error(result.error || "Google login failed");
+  //   }
+  // };
+
+  const handleGoogleLoginRedirect = () => {
+    window.location.href = "http://localhost:5000/api/auth/google";
+    // const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    // const baseUrl = apiUrl.replace("/api", "");
+    // window.location.href = `${baseUrl}/api/auth/google`;
+  };
 
   const requestOTPCode = async () => {
     if (!email) {
@@ -151,17 +221,19 @@ export default function LoginPage() {
       }
     >
       <div className="space-y-3">
+        {/* Google Sign In Button */}
         <button
           type="button"
-          onClick={() => toast.info("Google sign-in is a UI demo only.")}
-          className="w-full h-10 rounded-lg border border-border bg-card hover:bg-muted text-sm font-medium text-foreground inline-flex items-center justify-center gap-2"
+          onClick={handleGoogleLoginRedirect}
+          className="w-full h-10 rounded-lg border border-border bg-card hover:bg-muted text-sm font-medium text-foreground inline-flex items-center justify-center gap-2 transition-colors"
         >
           <GoogleIcon /> Continue with Google
         </button>
+
         <button
           type="button"
           onClick={toggleOTPMode}
-          className="w-full h-10 rounded-lg border border-border bg-card hover:bg-muted text-sm font-medium text-foreground inline-flex items-center justify-center gap-2"
+          className="w-full h-10 rounded-lg border border-border bg-card hover:bg-muted text-sm font-medium text-foreground inline-flex items-center justify-center gap-2 transition-colors"
         >
           <KeySquare className="h-4 w-4" /> {otpMode ? "Use password instead" : "Sign in with OTP"}
         </button>
@@ -253,8 +325,8 @@ export default function LoginPage() {
 
         {!otpMode && (
           <p className="text-xs text-muted-foreground">
-            Demo: <span className="font-medium text-foreground">alex@drivex.app</span> /{" "}
-            <span className="font-medium text-foreground">demo1234</span>
+            Demo: <span className="font-medium text-foreground">sudev97@outlook.com</span> /{" "}
+            <span className="font-medium text-foreground">test1234</span>
           </p>
         )}
       </form>

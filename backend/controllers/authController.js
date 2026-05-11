@@ -153,4 +153,33 @@ const updateUserProfile = async (req, res) => {
 };
 
 
-module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile };
+// @desc    Google OAuth callback
+// @route   GET /api/auth/google/callback
+const googleCallback = (req, res) => {
+  try {
+    const { user, token } = req.user;
+    
+    // Redirect to frontend with token
+    const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+  } catch (error) {
+    console.error('Google callback error:', error);
+    res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+  }
+};
+
+// @desc    Get current user
+// @route   GET /api/auth/me
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
+module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile, googleCallback, getCurrentUser };
