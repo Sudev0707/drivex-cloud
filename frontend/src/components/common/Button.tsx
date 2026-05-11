@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "outline" | "destructive";
+type Variant = "primary" | "secondary" | "ghost" | "outline" | "destructive" | "dark";
 type Size = "sm" | "md" | "lg" | "icon";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -22,6 +22,8 @@ const variants: Record<Variant, string> = {
     "bg-transparent text-foreground border border-border hover:bg-muted",
   destructive:
     "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+  dark:
+    "bg-black text-white hover:bg-zinc-900 border border-zinc-800",
 };
 
 const sizes: Record<Size, string> = {

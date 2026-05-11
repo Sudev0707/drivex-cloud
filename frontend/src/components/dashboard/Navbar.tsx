@@ -49,7 +49,7 @@ export function Navbar({ search, onSearchChange }: NavbarProps) {
         </div>
 
         <Button
-          variant="primary"
+          variant="dark"
           size="md"
           leftIcon={<Plus className="h-4 w-4" />}
           onClick={() => setUploadOpen(true)}

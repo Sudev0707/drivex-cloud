@@ -75,6 +75,7 @@ function SharedInner() {
                     Preview
                   </Button>
                   <Button
+                    variant="dark"
                     size="sm"
                     leftIcon={<Download className="h-3.5 w-3.5" />}
                     onClick={() => toast.info(`Downloading ${f.fileName}…`)}

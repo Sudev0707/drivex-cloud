@@ -78,7 +78,7 @@ function ProfileInner({
               >
                 Reset
               </Button>
-              <Button type="submit">Save changes</Button>
+              <Button variant="dark" type="submit">Save changes</Button>
             </div>
           </form>
         </div>

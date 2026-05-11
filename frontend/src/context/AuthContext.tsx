@@ -208,6 +208,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+
+    delete axios.defaults.headers.common["Authorization"];
+    sessionStorage.clear(); // If you use sessionStorage
+
+    console.log("User logged out, all auth data cleared");
   };
 
   const updateProfile = async (patch: Partial<AuthUser>) => {
@@ -232,16 +239,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
- const googleLogin = async () => {
-  try {
-    // Use BASE_URL here (not API_URL) to avoid double /api
-    window.location.href = `${BASE_URL}/api/auth/google`;
-    return { ok: true };
-  } catch (error: any) {
-    console.error("Google login error:", error);
-    return { ok: false, error: error.message };
-  }
-};
+  const googleLogin = async () => {
+    try {
+      // Use BASE_URL here (not API_URL) to avoid double /api
+      window.location.href = `${BASE_URL}/api/auth/google`;
+      return { ok: true };
+    } catch (error: any) {
+      console.error("Google login error:", error);
+      return { ok: false, error: error.message };
+    }
+  };
 
   // Or if you want to handle it without redirect (popup method):
   const googleLoginPopup = async () => {

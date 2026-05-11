@@ -27,7 +27,7 @@ export function CreateFolderModal({ open, onClose, onCreate }: CreateFolderModal
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={!name.trim()}>Create folder</Button>
+          <Button variant="dark" onClick={submit} disabled={!name.trim()}>Create folder</Button>
         </>
       }
     >

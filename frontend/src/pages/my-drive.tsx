@@ -72,7 +72,7 @@ function Inner() {
           <Button variant="outline" leftIcon={<FolderPlus className="h-4 w-4" />} onClick={() => setFolderOpen(true)}>
             New folder
           </Button>
-          <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => setUploadOpen(true)}>
+          <Button variant="dark" leftIcon={<Plus className="h-4 w-4" />} onClick={() => setUploadOpen(true)}>
             Upload
           </Button>
         </div>
