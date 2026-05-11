@@ -1,13 +1,25 @@
 const mongoose = require("mongoose");
-const URL = process.env. MONGODB_URI;
+const URL = process.env.MONGODB_URI;
 
-mongoose
-  .connect(URL)
-  .then(() => {
-    console.log("Database connected successfully");
-    connection = mongoose.connection; // Assign mongoose connection to variable
-  })
-  .catch((err) => {
-    console.log(`Database connection error: ${err}`);
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(URL);
+    console.log(`Database connected successfully: ${conn.connection.host}`);
+  } catch (error) {
+    console.log(`Database connection error: ${error}`);
     process.exit();
-  });
+  }
+}
+
+module.exports = connectDB;
+
+// mongoose
+//   .connect(URL)
+//   .then(() => {
+//     console.log("Database connected successfully");
+//     connection = mongoose.connection; // Assign mongoose connection to variable
+//   })
+//   .catch((err) => {
+//     console.log(`Database connection error: ${err}`);
+//     process.exit();
+//   });

@@ -1,0 +1,314 @@
+DriveX Lite (drivebox-lite) — Project Explanation & Tech Stack
+===============================================================
+
+1) High-level overview
+-----------------------
+DriveX Lite is a “Google Drive–like” cloud storage and file sharing application. It is inspired by MERN-style architectures and is designed to combine:
+- A React frontend (UI)
+- A Node.js/Express backend API
+- Cloud object storage (Cloudinary and/or AWS S3) for actual binary files
+- MongoDB (MongoDB Atlas) for metadata (users, folders, file records, permissions)
+
+Important note about the current codebase snapshot:
+- The backend application code in this repo appears incomplete/minimal: only backend server bootstrap + storage config files are present; there are no controller/model/route source files detected.
+- The frontend currently uses in-memory/mock data via React Context providers (Auth/File) and a dummy “api” service that simulates network calls.
+
+So, the project structure is intended for a real full-stack app, but the current frontend behavior is primarily UI + mock state.
+
+
+2) Repository structure (key folders)
+-------------------------------------
+Root:
+- README.md (overall description)
+- backend/ (server + cloud storage configuration)
+- frontend/ (React + Tailwind UI)
+
+backend/
+- index.js (Express app bootstrap)
+- config/
+  - connection.js (MongoDB connection using mongoose)
+  - cloudinary.js (Cloudinary + multer storage)
+  - multer.js (GridFS-based upload config; appears unused/legacy)
+  - s3.js (AWS S3 + multer-s3 upload + helper utilities)
+- controllers/ (empty in this snapshot)
+- models/ (empty in this snapshot)
+- middleware/ (empty in this snapshot)
+- routes/ (only .gitkeep)
+- utils/ (empty in this snapshot)
+
+frontend/
+- src/
+  - pages/ (React pages: login/register/dashboard/etc.)
+  - components/ (UI components, dashboard cards, upload components, modals)
+  - context/ (AuthContext, FileContext, ThemeContext)
+  - routes/ (AppRoutes using react-router-dom)
+  - services/ (api.ts dummy service, fileService.ts wrapper)
+  - lib/ and utils/ (helpers)
+  - styles.css and Tailwind configuration
+
+
+3) Backend tech stack
+----------------------
+Language/Runtime:
+- Node.js (CommonJS modules)
+
+Server framework:
+- Express (express)
+- CORS (cors)
+
+Environment/config:
+- dotenv (dotenv)
+
+Database:
+- mongoose (MongoDB Atlas connection)
+
+Auth & validation (dependencies present in package.json):
+- jsonwebtoken (JWT)
+- bcryptjs (password hashing)
+- express-validator (request validation)
+
+File upload / storage:
+- cloudinary (cloudinary) + multer-storage-cloudinary (multer-storage-cloudinary)
+- AWS SDK for JavaScript (aws-sdk) + multer-s3 (multer-s3)
+- multer (multipart handling)
+- nodemailer (present; likely used for emails such as verification/reset)
+
+Backend entry point:
+- backend/index.js
+  - Initializes dotenv
+  - Creates an Express app
+  - Enables CORS
+  - (Further route/controller wiring isn’t present in this snapshot)
+
+Storage integrations present:
+
+A) Cloudinary integration (backend/config/cloudinary.js)
+- Uses cloudinary.v2
+- Configures cloudinary with:
+  - CLOUDINARY_CLOUD_NAME
+  - CLOUDINARY_API_KEY
+  - CLOUDINARY_API_SECRET
+- Uses multer-storage-cloudinary to stream uploads to Cloudinary.
+- Allowed formats set to: jpg, jpeg, png, gif, pdf
+- Upload folder/params: folder = 'drivex-lite'
+
+B) AWS S3 integration (backend/config/s3.js)
+- Configures AWS SDK using environment variables:
+  - AWS_ACCESS_KEY_ID
+  - AWS_SECRET_ACCESS_KEY
+  - AWS_REGION
+- Creates S3 client (new AWS.S3())
+- Defines fileFilter with allowed MIME types:
+  - image/jpeg, image/jpg, image/png, image/gif
+  - application/pdf
+  - doc/docx mime types
+  - text/plain
+- Uses multer-s3 for object upload with:
+  - Bucket: S3_BUCKET_NAME
+  - acl: public-read
+  - Unique key generation: drivex-lite/<timestamp>-<random><ext>
+- Exports helper utilities:
+  - deleteFromS3(fileUrl): extracts key from URL and deletes object
+  - getSignedUrl(key, expiresIn): signed getObject URL
+
+C) GridFS upload config (backend/config/multer.js)
+- Uses multer-gridfs-storage (GridFS)
+- Appears more like an alternative storage path.
+
+
+4) Frontend tech stack
+-----------------------
+Language:
+- TypeScript
+
+Bundler/dev server:
+- Vite (vite)
+- @vitejs/plugin-react
+
+UI framework / styling:
+- Tailwind CSS (tailwindcss)
+- Tailwind + PostCSS integration via:
+  - @tailwindcss/vite
+  - @tailwindcss/postcss
+- A set of UI components in frontend/src/components/ui/*
+  - These look like shadcn/ui-style components (Radix UI based)
+
+Component primitives:
+- Radix UI (@radix-ui/react-... many packages)
+
+Routing:
+- react-router-dom (v6)
+
+Forms:
+- react-hook-form + @hookform/resolvers (present in package.json)
+
+Schema validation:
+- zod (present in package.json)
+
+Charts:
+- recharts (present)
+
+Notifications/toasts:
+- sonner (toast usage seen in login/dashboard)
+
+Icons:
+- lucide-react
+
+Misc:
+- clsx, class-variance-authority, tailwind-merge
+- date-fns
+- Embla carousel (embla-carousel-react) present
+- vaul (mobile drawer/sheet style)
+
+
+5) Frontend architecture (how the UI is composed)
+---------------------------------------------------
+Entry/wiring:
+- frontend/src/main.tsx (not read here but referenced by file list)
+- frontend/src/App.tsx wraps application with AppProviders
+- frontend/src/AppProviders.tsx wraps:
+  - AuthProvider (AuthContext)
+  - FileProvider (FileContext)
+  - ThemeProvider (ThemeContext)
+
+Routing:
+- frontend/src/routes/AppRoutes.tsx
+  - Uses <Routes>/<Route> from react-router-dom
+  - Routes:
+    - /            -> LandingPage (frontend/src/pages/index.tsx)
+    - /login      -> LoginPage
+    - /register   -> RegisterPage
+    - /dashboard  -> DashboardPage (protected)
+    - /my-drive   -> MyDrivePage (protected)
+    - /profile    -> ProfilePage (protected)
+    - /settings   -> SettingsPage (protected)
+    - /shared     -> SharedPage (protected)
+    - /trash      -> TrashPage (protected)
+    - *            -> NotFound
+
+Authentication gating:
+- frontend/src/components/ProtectedRoute.tsx
+  - Calls useAuth() from AuthContext
+  - If !isAuthenticated, navigates to /login
+
+Auth state & behavior (mocked UI demo):
+- frontend/src/context/AuthContext.tsx
+  - Stores user in localStorage under key "drivex.auth.user"
+  - Exposes:
+    - user
+    - isAuthenticated
+    - login(email, password)
+    - register(name, email, password)
+    - logout()
+    - updateProfile(patch)
+  - login/register resolve asynchronously and use mockUsers from frontend/src/data/users.ts
+  - Login page shows demo credentials:
+    - alex@drivex.app / demo1234
+
+File/folder state & behavior (mocked):
+- frontend/src/context/FileContext.tsx
+  - Maintains:
+    - files (mockFiles from frontend/src/data/files.ts)
+    - folders (mockFolders from frontend/src/data/folders.ts)
+    - UI state: isUploadOpen, isSidebarOpen
+  - Exposes operations:
+    - uploadFile(input) -> creates a MockFile entry in state
+    - createFolder(name)
+    - renameFile, renameFolder
+    - trashFile, restoreFile
+    - deleteFilePermanent, deleteFolder
+    - toggleShare
+    - totalUsedBytes (computed as sum of non-trashed file sizes)
+
+File type detection:
+- detectKind(type, name) maps MIME/extension patterns to a FileKind such as image, video, pdf, archive, doc, sheet, slide, code, other
+
+
+6) Frontend key pages / user flows
+-----------------------------------
+Login:
+- frontend/src/pages/login.tsx
+  - If already authenticated: redirects to /dashboard
+  - Otherwise:
+    - Uses useAuth().login()
+    - Shows OTP mode toggle (UI only)
+    - Uses sonner toast for feedback
+
+Dashboard:
+- frontend/src/pages/dashboard.tsx
+  - Wrapped in <ProtectedRoute>
+  - Uses DashboardLayout
+  - Renders:
+    - StorageCard (shows usage)
+    - UploadBox (upload UI)
+    - Folder grid with FolderCard components
+    - RecentUploads sidebar
+    - CreateFolderModal triggered by "New folder" button
+
+
+7) Frontend “API” layer (currently mocked)
+-------------------------------------------
+- frontend/src/services/api.ts
+  - Provides a dummy axios-style wrapper with:
+    - api.get(url, mock)
+    - api.post(url, body, mock)
+    - api.put(url, body, mock)
+    - api.delete(url)
+  - Each method returns { data: mock, status: ... } after a delay
+
+- frontend/src/services/fileService.ts
+  - fileService.list(files) -> api.get("/files", files)
+  - fileService.upload(file) -> api.post("/files", file, file)
+  - fileService.rename(id, name) -> api.put(`/files/${id}`, { name }, { id, name })
+  - fileService.remove(id) -> api.delete(`/files/${id}`)
+
+
+8) Summary of the intended end-to-end stack
+--------------------------------------------
+Intended production architecture (based on README + backend configs):
+- React (TypeScript + Vite) for SPA UI
+- Express API for authentication, file/folder CRUD, sharing, and signed URL delivery
+- MongoDB Atlas for metadata persistence (users, folders, file records)
+- Cloudinary and/or AWS S3 for actual binary file storage
+- JWT-based auth (jsonwebtoken) and password hashing (bcryptjs)
+- Upload handling via multer + storage adapters (Cloudinary storage / multer-s3)
+
+Current repo state (based on detected code):
+- Backend source for controllers/routes/models is missing in this snapshot.
+- Frontend uses mock state (AuthContext/FileContext) and a dummy API service.
+
+
+9) Tech stack list (quick reference)
+--------------------------------------
+Backend:
+- Node.js
+- Express
+- CORS
+- dotenv
+- mongoose (MongoDB)
+- jsonwebtoken (JWT)
+- bcryptjs
+- express-validator
+- multer
+- Cloudinary + multer-storage-cloudinary
+- AWS SDK + multer-s3
+- nodemailer
+
+Frontend:
+- React (TypeScript)
+- Vite
+- react-router-dom
+- Tailwind CSS
+- Radix UI
+- sonner
+- lucide-react
+- recharts
+- react-hook-form, zod (present)
+- shadcn/ui-like component set under src/components/ui
+
+
+10) Notes on “all tech stack” completeness
+-------------------------------------------
+The explanation above is based on the files that exist and were readable in this snapshot (README, backend configs, frontend contexts/pages/services).
+If you want the tech stack description to include exact runtime wiring (e.g., actual backend endpoints, models, controllers), those files are not present/detectable under backend/controllers, backend/models, backend/routes in the current workspace snapshot.
+
