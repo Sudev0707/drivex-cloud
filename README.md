@@ -1,4 +1,4 @@
-# DriveX Lite (drivebox-lite)
+# DriveX (drivebox-lite)
 
 DriveX Lite is a modern cloud storage and file sharing application inspired by Google Drive. It’s built as a MERN-style project with a React frontend, a Node/Express backend, and object storage (Cloudinary and/or AWS S3) for binary files.
 
