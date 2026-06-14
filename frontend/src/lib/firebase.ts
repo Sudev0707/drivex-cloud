@@ -15,26 +15,26 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-export const signInWithGoogle = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
+// export const signInWithGoogle = async () => {
+//   try {
+//     const result = await signInWithPopup(auth, googleProvider);
+//     const user = result.user;
     
-    // Send to backend to create/get user and generate JWT
-    const response = await fetch('http://localhost:5000/api/auth/google', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: user.displayName,
-        email: user.email,
-        avatar: user.photoURL,
-        googleId: user.uid
-      })
-    });
+//     // Send to backend to create/get user and generate JWT
+//     const response = await fetch('http://localhost:5000/api/auth/google', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({
+//         name: user.displayName,
+//         email: user.email,
+//         avatar: user.photoURL,
+//         googleId: user.uid
+//       })
+//     });
     
-    const data = await response.json();
-    return { success: true, token: data.token, user: data.user };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+//     const data = await response.json();
+//     return { success: true, token: data.token, user: data.user };
+//   } catch (error) {
+//     return { success: false, error: error.message };
+//   }
+// };

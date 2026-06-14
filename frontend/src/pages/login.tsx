@@ -1,4 +1,4 @@
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, type FormEvent } from "react";
 import { Mail, Lock, KeySquare, AlertCircle } from "lucide-react";
 import { AuthLayout } from "@/layouts/AuthLayout";
@@ -15,9 +15,11 @@ export default function LoginPage() {
     isAuthenticated,
     loading: authLoading,
     googleLogin,
+    completeGoogleAuth,
   } = useAuth();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("alex@drivex.app");
   const [password, setPassword] = useState("demo1234");
   const [otpCode, setOtpCode] = useState("");
@@ -27,27 +29,24 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [otpError, setOtpError] = useState<string | null>(null);
 
-  // google OAuth
+  // Handle Google OAuth redirect (legacy /login callback)
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const token = queryParams.get("token");
     const userData = queryParams.get("user");
 
-    if (token && userData) {
-      try {
-        const user = JSON.parse(decodeURIComponent(userData));
-        // Store token and user data
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
+    if (!token || !userData) return;
 
-        toast.success("Successfully signed in with Google!");
-        navigate("/dashboard");
-      } catch (error) {
-        console.error("Failed to parse Google user data:", error);
-        toast.error("Google sign-in failed. Please try again.");
-      }
+    try {
+      const user = JSON.parse(decodeURIComponent(userData));
+      completeGoogleAuth(token, user);
+      toast.success("Successfully signed in with Google!");
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      console.error("Failed to parse Google user data:", error);
+      toast.error("Google sign-in failed. Please try again.");
     }
-  }, [location, navigate]);
+  }, [location.search, navigate, completeGoogleAuth]);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" />;

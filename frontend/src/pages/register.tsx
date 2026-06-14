@@ -41,13 +41,13 @@ export default function RegisterPage() {
         </p>
       }
     >
-      <button
+      {/* <button
         type="button"
         onClick={() => toast.info("Google sign-up is a UI demo only.")}
         className="w-full h-10 rounded-lg border border-border bg-card hover:bg-muted text-sm font-medium text-foreground inline-flex items-center justify-center gap-2"
       >
         <span className="text-primary">●</span> Continue with Google
-      </button>
+      </button> */}
 
       <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
         <span className="h-px flex-1 bg-border" />

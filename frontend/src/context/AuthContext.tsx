@@ -33,6 +33,7 @@ interface AuthContextValue {
   requestOTP: (email: string) => Promise<{ ok: boolean; error?: string }>;
   verifyOTP: (email: string, otp: string) => Promise<{ ok: boolean; error?: string }>;
   googleLogin: () => Promise<{ ok: boolean; error?: string }>;
+  completeGoogleAuth: (token: string, userData: Record<string, unknown>) => void;
   logout: () => void;
   updateProfile: (patch: Partial<AuthUser>) => Promise<{ ok: boolean; error?: string }>;
 }
@@ -40,6 +41,33 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const TOKEN_KEY = "drivex.auth.token";
 const USER_KEY = "drivex.auth.user";
+
+function buildAuthUser(userData: Record<string, unknown>, token: string): AuthUser {
+  const name = String(userData.name ?? "User");
+  return {
+    ...(userData as AuthUser),
+    id: String(userData._id ?? userData.id),
+    token,
+    avatar:
+      (userData.avatar as string | undefined) ||
+      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=3b82f6&textColor=ffffff`,
+    plan: (userData.plan as AuthUser["plan"]) || "Free",
+    storageLimitMb: (userData.storageLimitMb as number) || 2048,
+  };
+}
+
+function readGoogleAuthFromUrl(): { token: string; user: Record<string, unknown> } | null {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  const userData = params.get("user");
+  if (!token || !userData) return null;
+
+  try {
+    return { token, user: JSON.parse(decodeURIComponent(userData)) as Record<string, unknown> };
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -60,8 +88,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
 
     const loadUser = async () => {
+      const googleAuth = readGoogleAuthFromUrl();
+      if (googleAuth) {
+        const authUser = buildAuthUser(googleAuth.user, googleAuth.token);
+        setUser(authUser);
+        localStorage.setItem(TOKEN_KEY, googleAuth.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+        axios.defaults.headers.common["Authorization"] = `Bearer ${googleAuth.token}`;
+        window.history.replaceState({}, "", "/dashboard");
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem(TOKEN_KEY);
-      const savedUser = localStorage.getItem(USER_KEY);
 
       if (!token) {
         setLoading(false);
@@ -239,6 +278,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const completeGoogleAuth = (token: string, userData: Record<string, unknown>) => {
+    const authUser = buildAuthUser(userData, token);
+    setUser(authUser);
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  };
+
   const googleLogin = async () => {
     try {
       // Use BASE_URL here (not API_URL) to avoid double /api
@@ -294,6 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         requestOTP,
         verifyOTP,
         googleLogin,
+        completeGoogleAuth,
         logout,
         updateProfile,
       }}
