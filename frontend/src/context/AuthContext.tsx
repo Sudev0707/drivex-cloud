@@ -1,13 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import axios from "axios";
+import { TOKEN_KEY, USER_KEY } from "@/constants/auth";
+import { apiClient } from "@/services/apiClient";
+import { BASE_URL } from "@/services/client";
 
-// API configuration
-const BASE_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5000";
-const API_URL = `${BASE_URL}/api`;
-// const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-// Configure axios defaults
-axios.defaults.withCredentials = true;
+function persistToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
 
 interface AuthUser {
   _id: string;
@@ -39,8 +37,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const TOKEN_KEY = "drivex.auth.token";
-const USER_KEY = "drivex.auth.user";
 
 function buildAuthUser(userData: Record<string, unknown>, token: string): AuthUser {
   const name = String(userData.name ?? "User");
@@ -69,17 +65,27 @@ function readGoogleAuthFromUrl(): { token: string; user: Record<string, unknown>
   }
 }
 
+function readStoredUser(): AuthUser | null {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const raw = localStorage.getItem(USER_KEY);
+    if (!token || !raw) return null;
+    const parsed = JSON.parse(raw) as AuthUser;
+    return { ...parsed, token };
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => readStoredUser());
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
 
-  // Set up axios interceptor for token
+  // Restore token before auth hydration completes
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    }
+    if (token) persistToken(token);
     setHydrated(true);
   }, []);
 
@@ -92,9 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (googleAuth) {
         const authUser = buildAuthUser(googleAuth.user, googleAuth.token);
         setUser(authUser);
-        localStorage.setItem(TOKEN_KEY, googleAuth.token);
+        persistToken(googleAuth.token);
         localStorage.setItem(USER_KEY, JSON.stringify(authUser));
-        axios.defaults.headers.common["Authorization"] = `Bearer ${googleAuth.token}`;
         window.history.replaceState({}, "", "/dashboard");
         setLoading(false);
         return;
@@ -109,8 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Try to fetch fresh user data from backend
       try {
-        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-        const response = await axios.get(`${API_URL}/auth/profile`);
+        persistToken(token);
+        const response = await apiClient.get("/auth/profile");
 
         const userData = {
           ...response.data,
@@ -120,11 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData);
         localStorage.setItem(USER_KEY, JSON.stringify(userData));
       } catch (error) {
-        // If token is invalid, clear storage
         console.error("Failed to load user:", error);
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
-        delete axios.defaults.headers.common["Authorization"];
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -133,30 +137,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUser();
   }, [hydrated]);
 
-  // Save user to localStorage when it changes
+  // Persist user to localStorage when it changes (never clear here — logout handles that)
   useEffect(() => {
-    if (!hydrated) return;
-    if (user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-      if (user.token) {
-        localStorage.setItem(TOKEN_KEY, user.token);
-        axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
-      }
-    } else {
-      localStorage.removeItem(USER_KEY);
-      localStorage.removeItem(TOKEN_KEY);
-      delete axios.defaults.headers.common["Authorization"];
-    }
+    if (!hydrated || !user) return;
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    if (user.token) persistToken(user.token);
   }, [user, hydrated]);
 
   const login: AuthContextValue["login"] = async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await apiClient.post("/auth/login", {
         email,
         password,
       });
 
       const { token, ...userData } = response.data;
+      persistToken(token);
 
       const authUser: AuthUser = {
         ...userData,
@@ -181,13 +177,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register: AuthContextValue["register"] = async (name, email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, {
+      const response = await apiClient.post("/auth/register", {
         name,
         email,
         password,
       });
 
       const { token, ...userData } = response.data;
+      persistToken(token);
 
       const authUser: AuthUser = {
         ...userData,
@@ -210,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const requestOTP: AuthContextValue["requestOTP"] = async (email) => {
     try {
-      await axios.post(`${API_URL}/otp/request`, { email });
+      await apiClient.post("/otp/request", { email });
       return { ok: true };
     } catch (error: any) {
       return {
@@ -222,9 +219,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyOTP: AuthContextValue["verifyOTP"] = async (email, otp) => {
     try {
-      const response = await axios.post(`${API_URL}/otp/verify`, { email, otp });
+      const response = await apiClient.post("/otp/verify", { email, otp });
 
       const { token, ...userData } = response.data;
+      persistToken(token);
 
       const authUser: AuthUser = {
         ...userData,
@@ -249,16 +247,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-
-    delete axios.defaults.headers.common["Authorization"];
-    sessionStorage.clear(); // If you use sessionStorage
+    sessionStorage.clear();
 
     console.log("User logged out, all auth data cleared");
   };
 
   const updateProfile = async (patch: Partial<AuthUser>) => {
     try {
-      const response = await axios.put(`${API_URL}/auth/profile`, patch);
+      const response = await apiClient.put("/auth/profile", patch);
 
       setUser((prev) => {
         if (!prev) return null;
@@ -281,9 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeGoogleAuth = (token: string, userData: Record<string, unknown>) => {
     const authUser = buildAuthUser(userData, token);
     setUser(authUser);
-    localStorage.setItem(TOKEN_KEY, token);
+    persistToken(token);
     localStorage.setItem(USER_KEY, JSON.stringify(authUser));
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   };
 
   const googleLogin = async () => {
@@ -307,7 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const top = window.screen.height / 2 - height / 2;
 
       const popup = window.open(
-        `${API_URL}/auth/google`,
+        `${BASE_URL}/api/auth/google`,
         "Google Login",
         `width=${width},height=${height},left=${left},top=${top}`,
       );
@@ -319,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             popup?.close();
             const { token, user } = event.data;
             localStorage.setItem(TOKEN_KEY, token);
+            persistToken(token);
             localStorage.setItem(USER_KEY, JSON.stringify(user));
             setUser(user);
             resolve({ ok: true });

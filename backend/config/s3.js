@@ -1,20 +1,16 @@
-// backend/config/s3.js
 const AWS = require('aws-sdk');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const path = require('path');
 
-// Configure AWS
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION,
 });
 
-// Create S3 instance
 const s3 = new AWS.S3();
 
-// File filter - specify allowed file types
 const fileFilter = (req, file, cb) => {
   const allowedMimes = [
     'image/jpeg',
@@ -38,7 +34,7 @@ const fileFilter = (req, file, cb) => {
 const storage = multerS3({
   s3: s3,
   bucket: process.env.S3_BUCKET_NAME,
-  acl: 'public-read', // Make files publicly accessible
+  acl: 'public-read',
   metadata: (req, file, cb) => {
     cb(null, { 
       fieldName: file.fieldname,
@@ -47,7 +43,6 @@ const storage = multerS3({
     });
   },
   key: (req, file, cb) => {
-    // Create unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     const filename = `drivex-lite/${uniqueSuffix}${ext}`;
@@ -55,19 +50,17 @@ const storage = multerS3({
   },
 });
 
-// Create multer upload instance with limits
+// Create multer 
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max file size
+    fileSize: 10 * 1024 * 1024, 
   },
   fileFilter: fileFilter,
 });
 
-// Helper function to delete file from S3
 const deleteFromS3 = async (fileUrl) => {
   try {
-    // Extract key from URL
     const key = fileUrl.split('.amazonaws.com/')[1];
     if (!key) return false;
     
@@ -85,12 +78,11 @@ const deleteFromS3 = async (fileUrl) => {
   }
 };
 
-// Helper function to generate signed URL for private files
 const getSignedUrl = (key, expiresIn = 3600) => {
   const params = {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: key,
-    Expires: expiresIn, // URL expires in seconds
+    Expires: expiresIn, 
   };
   return s3.getSignedUrl('getObject', params);
 };

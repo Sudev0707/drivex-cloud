@@ -6,8 +6,11 @@ const connectDB = require("./config/connection");
 const {testEmailService} = require("./services/emailService");
 const session = require('express-session');
 const passport = require("./middleware/passport");
+const path = require("path");
 const authRoutes = require("./routes/authRoutes");
 const otpRoutes = require("./routes/otpRoutes");
+const folderRoutes = require("./routes/folderRoutes");
+const fileRoutes = require("./routes/fileRoutes");
 
 // load environment variables
 dotenv.config();
@@ -25,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors({
     origin: 'http://localhost:3000', // Adjust this to your frontend URL
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
@@ -47,9 +50,17 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+app.get("/api/health", (_req, res) => {
+    res.json({ ok: true, routes: ["auth", "otp", "folders", "files"] });
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/otp", otpRoutes);
+app.use("/api/folders", folderRoutes);
+app.use("/api/files", fileRoutes);
 
 // error handling middleware
 app.use((err, req, res, next) => {

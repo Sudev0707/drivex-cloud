@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Modal } from "@/components/common/Modal";
 import { Button } from "@/components/common/Button";
 import { AlertTriangle } from "lucide-react";
@@ -5,7 +6,7 @@ import { AlertTriangle } from "lucide-react";
 interface DeleteConfirmModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title?: string;
   description?: string;
   confirmLabel?: string;
@@ -19,6 +20,19 @@ export function DeleteConfirmModal({
   description = "This action can't be undone.",
   confirmLabel = "Delete",
 }: DeleteConfirmModalProps) {
+  const [saving, setSaving] = useState(false);
+
+  const handleConfirm = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onConfirm();
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Modal
       open={open}
@@ -29,12 +43,10 @@ export function DeleteConfirmModal({
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button
             variant="destructive"
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
+            onClick={handleConfirm}
+            disabled={saving}
           >
-            {confirmLabel}
+            {saving ? "Working…" : confirmLabel}
           </Button>
         </>
       }

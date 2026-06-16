@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Navbar } from "@/components/dashboard/Navbar";
-import { UploadModal } from "@/components/upload/UploadModal";
+import { UploadFilesModal } from "@/components/modals";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -17,7 +17,7 @@ export function DashboardLayout({ children, search, onSearchChange }: DashboardL
         <Navbar search={search} onSearchChange={onSearchChange} />
         <main className="flex-1 px-4 md:px-8 py-6 md:py-8">{children}</main>
       </div>
-      <UploadModal />
+      <UploadFilesModal />
     </div>
   );
 }

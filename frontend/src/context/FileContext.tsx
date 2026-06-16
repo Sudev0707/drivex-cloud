@@ -1,98 +1,132 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { type MockFile, type FileKind } from "@/data/files";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import { type MockFile } from "@/data/files";
 import { type MockFolder } from "@/data/folders";
+import { useAuth } from "@/context/AuthContext";
+import { fileService } from "@/services/fileService";
+import { folderService } from "@/services/folderService";
 
 interface FileContextValue {
   files: MockFile[];
   folders: MockFolder[];
+  loading: boolean;
   isUploadOpen: boolean;
   setUploadOpen: (open: boolean) => void;
   isSidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
-  uploadFile: (input: { name: string; size: number; type: string; kind: FileKind; previewUrl?: string }) => MockFile;
-  createFolder: (name: string) => MockFolder;
-  renameFile: (id: string, name: string) => void;
-  renameFolder: (id: string, name: string) => void;
-  trashFile: (id: string) => void;
-  restoreFile: (id: string) => void;
-  deleteFilePermanent: (id: string) => void;
-  deleteFolder: (id: string) => void;
-  toggleShare: (id: string) => void;
+  refresh: () => Promise<void>;
+  uploadFiles: (
+    files: File[],
+    folderId?: string | null,
+    onProgress?: (itemId: string, percent: number) => void,
+  ) => Promise<MockFile[]>;
+  createFolder: (name: string) => Promise<MockFolder>;
+  renameFile: (id: string, name: string) => Promise<void>;
+  renameFolder: (id: string, name: string) => Promise<void>;
+  trashFile: (id: string) => Promise<void>;
+  restoreFile: (id: string) => Promise<void>;
+  deleteFilePermanent: (id: string) => Promise<void>;
+  deleteFolder: (id: string) => Promise<void>;
+  toggleShare: (id: string) => Promise<void>;
   totalUsedBytes: number;
 }
 
 const FileContext = createContext<FileContextValue | undefined>(undefined);
 
-function detectKind(type: string, name: string): FileKind {
-  if (type.startsWith("image/")) return "image";
-  if (type.startsWith("video/")) return "video";
-  if (type.startsWith("audio/")) return "audio";
-  if (type.includes("pdf")) return "pdf";
-  if (/(zip|rar|7z|tar|gz)$/i.test(name)) return "archive";
-  if (/\.(docx?|odt|rtf)$/i.test(name)) return "doc";
-  if (/\.(xlsx?|csv|ods)$/i.test(name)) return "sheet";
-  if (/\.(pptx?|key|odp)$/i.test(name)) return "slide";
-  if (/\.(js|ts|tsx|jsx|py|rb|go|rs|java|cpp|c|json|md)$/i.test(name)) return "code";
-  return "other";
-}
-
 export function FileProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [files, setFiles] = useState<MockFile[]>([]);
   const [folders, setFolders] = useState<MockFolder[]>([]);
+  const [loading, setLoading] = useState(false);
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
 
-  const uploadFile: FileContextValue["uploadFile"] = (input) => {
-    const file: MockFile = {
-      id: `fi-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      fileName: input.name,
-      fileType: input.type || "application/octet-stream",
-      kind: input.kind ?? detectKind(input.type, input.name),
-      fileSize: input.size,
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: "You",
-      folderId: null,
-      isTrashed: false,
-      previewUrl: input.previewUrl,
-    };
-    setFiles((prev) => [file, ...prev]);
-    return file;
+  const refresh = useCallback(async () => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      setFiles([]);
+      setFolders([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [nextFiles, nextFolders] = await Promise.all([
+        fileService.list(),
+        folderService.list(),
+      ]);
+      setFiles(nextFiles);
+      setFolders(nextFolders);
+    } catch (error) {
+      console.error("Failed to load drive data:", error);
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to load your drive";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated, authLoading]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const uploadFiles: FileContextValue["uploadFiles"] = async (fileList, folderId = null, onProgress) => {
+    const uploaded: MockFile[] = [];
+
+    for (const [index, file] of fileList.entries()) {
+      const itemId = `upload-${index}-${file.name}`;
+      const saved = await fileService.upload(file, folderId, (percent) => onProgress?.(itemId, percent));
+      uploaded.push(saved);
+      setFiles((prev) => [saved, ...prev.filter((f) => f.id !== saved.id)]);
+    }
+
+    return uploaded;
   };
 
-  const createFolder: FileContextValue["createFolder"] = (name) => {
-    const palette = ["#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4"];
-    const folder: MockFolder = {
-      id: `f-${Date.now()}`,
-      name,
-      createdAt: new Date().toISOString(),
-      color: palette[Math.floor(Math.random() * palette.length)],
-    };
+  const createFolder: FileContextValue["createFolder"] = async (name) => {
+    const folder = await folderService.create(name);
     setFolders((prev) => [folder, ...prev]);
     return folder;
   };
 
-  const renameFile = (id: string, name: string) =>
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, fileName: name } : f)));
+  const renameFile = async (id: string, name: string) => {
+    const updated = await fileService.rename(id, name);
+    setFiles((prev) => prev.map((f) => (f.id === id ? updated : f)));
+  };
 
-  const renameFolder = (id: string, name: string) =>
-    setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
+  const renameFolder = async (id: string, name: string) => {
+    const updated = await folderService.rename(id, name);
+    setFolders((prev) => prev.map((f) => (f.id === id ? updated : f)));
+  };
 
-  const trashFile = (id: string) =>
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, isTrashed: true } : f)));
+  const trashFile = async (id: string) => {
+    const updated = await fileService.trash(id);
+    setFiles((prev) => prev.map((f) => (f.id === id ? updated : f)));
+  };
 
-  const restoreFile = (id: string) =>
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, isTrashed: false } : f)));
+  const restoreFile = async (id: string) => {
+    const updated = await fileService.restore(id);
+    setFiles((prev) => prev.map((f) => (f.id === id ? updated : f)));
+  };
 
-  const deleteFilePermanent = (id: string) =>
+  const deleteFilePermanent = async (id: string) => {
+    await fileService.remove(id);
     setFiles((prev) => prev.filter((f) => f.id !== id));
+  };
 
-  const deleteFolder = (id: string) => {
+  const deleteFolder = async (id: string) => {
+    await folderService.remove(id);
     setFolders((prev) => prev.filter((f) => f.id !== id));
     setFiles((prev) => prev.map((f) => (f.folderId === id ? { ...f, folderId: null } : f)));
   };
 
-  const toggleShare = (id: string) =>
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, isShared: !f.isShared } : f)));
+  const toggleShare = async (id: string) => {
+    const updated = await fileService.toggleShare(id);
+    setFiles((prev) => prev.map((f) => (f.id === id ? updated : f)));
+  };
 
   const totalUsedBytes = useMemo(
     () => files.filter((f) => !f.isTrashed).reduce((s, f) => s + f.fileSize, 0),
@@ -104,11 +138,13 @@ export function FileProvider({ children }: { children: ReactNode }) {
       value={{
         files,
         folders,
+        loading,
         isUploadOpen,
         setUploadOpen,
         isSidebarOpen,
         setSidebarOpen,
-        uploadFile,
+        refresh,
+        uploadFiles,
         createFolder,
         renameFile,
         renameFolder,

@@ -7,19 +7,25 @@ interface RenameModalProps {
   open: boolean;
   onClose: () => void;
   initialName: string;
-  onRename: (name: string) => void;
+  onRename: (name: string) => void | Promise<void>;
   label?: string;
 }
 
 export function RenameModal({ open, onClose, initialName, onRename, label = "New name" }: RenameModalProps) {
   const [name, setName] = useState(initialName);
+  const [saving, setSaving] = useState(false);
   useEffect(() => { setName(initialName); }, [initialName, open]);
 
-  const submit = () => {
+  const submit = async () => {
     const trimmed = name.trim();
-    if (!trimmed) return;
-    onRename(trimmed);
-    onClose();
+    if (!trimmed || saving) return;
+    setSaving(true);
+    try {
+      await onRename(trimmed);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -30,7 +36,9 @@ export function RenameModal({ open, onClose, initialName, onRename, label = "New
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={!name.trim()}>Rename</Button>
+          <Button onClick={submit} disabled={!name.trim() || saving}>
+            {saving ? "Saving…" : "Rename"}
+          </Button>
         </>
       }
     >

@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useFiles } from "@/context/FileContext";
 import { Button } from "@/components/common/Button";
 import { ArrowRight, FolderPlus } from "lucide-react";
-import { CreateFolderModal } from "@/components/modals/CreateFolderModal";
+import { CreateFolderModal } from "@/components/modals";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -79,9 +79,17 @@ function Inner() {
       <CreateFolderModal
         open={folderOpen}
         onClose={() => setFolderOpen(false)}
-        onCreate={(name) => {
-          createFolder(name);
-          toast.success(`Created folder "${name}"`);
+        onCreate={async (name) => {
+          try {
+            await createFolder(name);
+            toast.success(`Created folder "${name}"`);
+          } catch (error: unknown) {
+            const message =
+              (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+              "Failed to create folder";
+            toast.error(message);
+            throw error;
+          }
         }}
       />
     </DashboardLayout>

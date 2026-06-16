@@ -9,7 +9,7 @@ import { Button } from "@/components/common/Button";
 import { FileTypeIcon } from "@/components/common/FileTypeIcon";
 import { formatBytes } from "@/utils/formatBytes";
 import { timeAgo } from "@/utils/formatDate";
-import { PreviewModal } from "@/components/modals/PreviewModal";
+import { PreviewModal } from "@/components/modals";
 import type { MockFile } from "@/data/files";
 import { toast } from "sonner";
 

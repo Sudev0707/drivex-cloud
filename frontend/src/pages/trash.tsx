@@ -9,7 +9,7 @@ import { Button } from "@/components/common/Button";
 import { FileTypeIcon } from "@/components/common/FileTypeIcon";
 import { formatBytes } from "@/utils/formatBytes";
 import { timeAgo } from "@/utils/formatDate";
-import { DeleteConfirmModal } from "@/components/modals/DeleteConfirmModal";
+import { DeleteConfirmModal } from "@/components/modals";
 import { toast } from "sonner";
 
 export default function TrashPage() {
@@ -63,9 +63,16 @@ function TrashInner() {
                     size="sm"
                     variant="outline"
                     leftIcon={<RotateCcw className="h-3.5 w-3.5" />}
-                    onClick={() => {
-                      restoreFile(f.id);
-                      toast.success(`Restored ${f.fileName}`);
+                    onClick={async () => {
+                      try {
+                        await restoreFile(f.id);
+                        toast.success(`Restored ${f.fileName}`);
+                      } catch (error: unknown) {
+                        const message =
+                          (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                          "Failed to restore file";
+                        toast.error(message);
+                      }
                     }}
                   >
                     Restore
@@ -91,10 +98,18 @@ function TrashInner() {
         title="Delete permanently?"
         description={target ? `"${target.name}" will be removed forever. This can't be undone.` : undefined}
         confirmLabel="Delete forever"
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!target) return;
-          deleteFilePermanent(target.id);
-          toast.success("Deleted permanently");
+          try {
+            await deleteFilePermanent(target.id);
+            toast.success("Deleted permanently");
+          } catch (error: unknown) {
+            const message =
+              (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+              "Failed to delete file";
+            toast.error(message);
+            throw error;
+          }
         }}
       />
     </DashboardLayout>

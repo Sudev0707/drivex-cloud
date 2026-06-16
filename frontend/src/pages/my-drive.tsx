@@ -8,10 +8,7 @@ import { FileCard } from "@/components/dashboard/FileCard";
 import { FolderCard } from "@/components/dashboard/FolderCard";
 import { Button } from "@/components/common/Button";
 import { EmptyState } from "@/components/common/EmptyState";
-import { CreateFolderModal } from "@/components/modals/CreateFolderModal";
-import { RenameModal } from "@/components/modals/RenameModal";
-import { DeleteConfirmModal } from "@/components/modals/DeleteConfirmModal";
-import { PreviewModal } from "@/components/modals/PreviewModal";
+import { CreateFolderModal, RenameModal, DeleteConfirmModal, PreviewModal } from "@/components/modals";
 import type { MockFile } from "@/data/files";
 import type { MockFolder } from "@/data/folders";
 import { toast } from "sonner";
@@ -124,9 +121,17 @@ function Inner() {
                 onPreview={(file) => setPreviewTarget(file)}
                 onRename={(file) => setRenameTarget({ kind: "file", id: file.id, name: file.fileName })}
                 onDelete={(file) => setDeleteTarget({ kind: "file", id: file.id, name: file.fileName })}
-                onShare={(file) => {
-                  toggleShare(file.id);
-                  toast.success(file.isShared ? "Stopped sharing" : "File shared");
+                onShare={async (file) => {
+                  try {
+                    await toggleShare(file.id);
+                    toast.success(file.isShared ? "Stopped sharing" : "File shared");
+                  } catch (error: unknown) {
+                    const message =
+                      (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                      "Failed to update sharing";
+                    toast.error(message);
+            throw error;
+                  }
                 }}
                 onDownload={(file) => toast.info(`Downloading ${file.fileName}…`)}
               />
@@ -138,20 +143,36 @@ function Inner() {
       <CreateFolderModal
         open={folderOpen}
         onClose={() => setFolderOpen(false)}
-        onCreate={(name) => {
-          createFolder(name);
-          toast.success(`Created folder "${name}"`);
+        onCreate={async (name) => {
+          try {
+            await createFolder(name);
+            toast.success(`Created folder "${name}"`);
+          } catch (error: unknown) {
+            const message =
+              (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+              "Failed to create folder";
+            toast.error(message);
+            throw error;
+          }
         }}
       />
       <RenameModal
         open={!!renameTarget}
         onClose={() => setRenameTarget(null)}
         initialName={renameTarget?.name ?? ""}
-        onRename={(name) => {
+        onRename={async (name) => {
           if (!renameTarget) return;
-          if (renameTarget.kind === "file") renameFile(renameTarget.id, name);
-          else renameFolder(renameTarget.id, name);
-          toast.success("Renamed");
+          try {
+            if (renameTarget.kind === "file") await renameFile(renameTarget.id, name);
+            else await renameFolder(renameTarget.id, name);
+            toast.success("Renamed");
+          } catch (error: unknown) {
+            const message =
+              (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+              "Failed to rename";
+            toast.error(message);
+            throw error;
+          }
         }}
       />
       <DeleteConfirmModal
@@ -164,23 +185,39 @@ function Inner() {
             : `"${deleteTarget?.name}" will be moved to Trash. You can restore it from there.`
         }
         confirmLabel={deleteTarget?.kind === "folder" ? "Delete folder" : "Move to trash"}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!deleteTarget) return;
-          if (deleteTarget.kind === "folder") {
-            deleteFolder(deleteTarget.id);
-            toast.success("Folder deleted");
-          } else {
-            trashFile(deleteTarget.id);
-            toast.success("Moved to trash");
+          try {
+            if (deleteTarget.kind === "folder") {
+              await deleteFolder(deleteTarget.id);
+              toast.success("Folder deleted");
+            } else {
+              await trashFile(deleteTarget.id);
+              toast.success("Moved to trash");
+            }
+          } catch (error: unknown) {
+            const message =
+              (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+              "Action failed";
+            toast.error(message);
+            throw error;
           }
         }}
       />
       <PreviewModal
         file={previewTarget}
         onClose={() => setPreviewTarget(null)}
-        onShare={(file) => {
-          toggleShare(file.id);
-          toast.success(file.isShared ? "Stopped sharing" : "File shared");
+        onShare={async (file) => {
+          try {
+            await toggleShare(file.id);
+            toast.success(file.isShared ? "Stopped sharing" : "File shared");
+          } catch (error: unknown) {
+            const message =
+              (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+              "Failed to update sharing";
+            toast.error(message);
+            throw error;
+          }
         }}
         onDownload={(file) => toast.info(`Downloading ${file.fileName}…`)}
       />
