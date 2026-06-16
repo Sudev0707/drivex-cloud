@@ -4,7 +4,6 @@ import { Share2, Download, Eye } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { useFiles } from "@/context/FileContext";
-import { mockSharedFiles } from "@/data/sharedFiles";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/common/Button";
 import { FileTypeIcon } from "@/components/common/FileTypeIcon";
@@ -32,7 +31,7 @@ function SharedInner() {
       .filter((f) => f.isShared && !f.isTrashed)
       .map((f) => ({ ...f, sharedBy: "You", sharedAt: f.uploadedAt }));
 
-    return [...myShared, ...mockSharedFiles].filter((f: any) =>
+    return myShared.filter((f: any) =>
       f.fileName.toLowerCase().includes(search.toLowerCase()),
     );
   }, [files, search]);

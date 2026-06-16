@@ -20,8 +20,8 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState("alex@drivex.app");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpMode, setOtpMode] = useState(false);
   const [otpSent, setOtpSent] = useState(false);

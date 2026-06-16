@@ -34,7 +34,7 @@ function Inner() {
         <div>
           <p className="text-sm text-muted-foreground">Welcome back</p>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
-            Hi, {user?.name?.split(" ")[0]} 💡
+            Hi, {user?.name?.split(" ")[0]}
           </h1>
         </div>
         <Button

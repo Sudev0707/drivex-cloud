@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { mockFiles, type MockFile, type FileKind } from "@/data/files";
-import { mockFolders, type MockFolder } from "@/data/folders";
+import { type MockFile, type FileKind } from "@/data/files";
+import { type MockFolder } from "@/data/folders";
 
 interface FileContextValue {
   files: MockFile[];
@@ -37,8 +37,8 @@ function detectKind(type: string, name: string): FileKind {
 }
 
 export function FileProvider({ children }: { children: ReactNode }) {
-  const [files, setFiles] = useState<MockFile[]>(mockFiles);
-  const [folders, setFolders] = useState<MockFolder[]>(mockFolders);
+  const [files, setFiles] = useState<MockFile[]>([]);
+  const [folders, setFolders] = useState<MockFolder[]>([]);
   const [isUploadOpen, setUploadOpen] = useState(false);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
 
